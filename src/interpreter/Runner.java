@@ -12,7 +12,7 @@ public class Runner {
 		AbstractSyntaxTree a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 
-		t = Tokenizer.tokenize("(2 +3 * 2 / 123)");
+		t = Tokenizer.tokenize("not true or false");
 		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 	}

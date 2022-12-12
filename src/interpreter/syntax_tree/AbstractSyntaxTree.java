@@ -14,67 +14,78 @@ public class AbstractSyntaxTree {
 
 	public AbstractSyntaxTree(List<Token> tokens) {
 		this.tokens = tokens;
-		root = expressionB();
+		root = expressionA();
+	}
+
+	private SyntaxNode expressionA() {
+		SyntaxNode expr = expressionB();
+		if (getToken().type() == Token.Type.ASSIGN) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode a = expressionA();
+			return new OperationNode(op, List.of(expr, a));
+		}
+		return expr;
 	}
 
 	private SyntaxNode expressionB() {
-		SyntaxNode c = expressionC();
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.LOGICAL && tokens.get(tokenIdx).text().equals("or")) {
-			String op = tokens.get(tokenIdx).text();
-			tokenIdx++;
-			SyntaxNode b = expressionB();
-			return new OperationNode(op, List.of(b, c));
+		SyntaxNode expr = expressionC();
+		while (getToken().type() == Token.Type.LOGICAL && getToken().text().equals("or")) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode next = expressionC();
+			expr = new OperationNode(op, List.of(expr, next));
 		}
-		return c;
+		return expr;
 	}
 
 	private SyntaxNode expressionC() {
-		SyntaxNode d = expressionD();
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.LOGICAL && tokens.get(tokenIdx).text().equals("and")) {
-			String op = tokens.get(tokenIdx).text();
-			tokenIdx++;
-			SyntaxNode c = expressionC();
-			return new OperationNode(op, List.of(d, c));
+		SyntaxNode expr = expressionD();
+		while (getToken().type() == Token.Type.LOGICAL && getToken().text().equals("and")) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode next = expressionD();
+			expr = new OperationNode(op, List.of(expr, next));
 		}
-		return d;
+		return expr;
 	}
 
 	private SyntaxNode expressionD() {
-		SyntaxNode e = expressionE();
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.RELATIONAL) {
-			String op = tokens.get(tokenIdx).text();
-			tokenIdx++;
-			SyntaxNode d = expressionD();
-			return new OperationNode(op, List.of(e, d));
+		SyntaxNode expr = expressionE();
+		while (getToken().type() == Token.Type.RELATIONAL) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode next = expressionE();
+			expr = new OperationNode(op, List.of(expr, next));
 		}
-		return e;
+		return expr;
 	}
 
 	private SyntaxNode expressionE() {
-		SyntaxNode f = expressionF();
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.ADDITIVE) {
-			String op = tokens.get(tokenIdx).text();
-			tokenIdx++;
-			SyntaxNode e = expressionE();
-			return new OperationNode(op, List.of(f, e));
+		SyntaxNode expr = expressionF();
+		while (getToken().type() == Token.Type.ADDITIVE) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode next = expressionF();
+			expr = new OperationNode(op, List.of(expr, next));
 		}
-		return f;
+		return expr;
 	}
 
 	private SyntaxNode expressionF() {
-		SyntaxNode g = expressionG();
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.MULTIPLICATIVE) {
-			String op = tokens.get(tokenIdx).text();
-			tokenIdx++;
-			SyntaxNode f = expressionF();
-			return new OperationNode(op, List.of(g, f));
+		SyntaxNode expr = expressionG();
+		while (getToken().type() == Token.Type.MULTIPLICATIVE) {
+			String op = getToken().text();
+			nextToken();
+			SyntaxNode next = expressionG();
+			expr = new OperationNode(op, List.of(expr, next));
 		}
-		return g;
+		return expr;
 	}
 
 	private SyntaxNode expressionG() {
-		if (tokenIdx < tokens.size() && tokens.get(tokenIdx).type() == Token.Type.NEGATE) {
-			tokenIdx++;
+		if (getToken().type() == Token.Type.NEGATE) {
+			nextToken();
 			SyntaxNode g = expressionG();
 			return new OperationNode("not", g);
 		}
@@ -82,25 +93,44 @@ public class AbstractSyntaxTree {
 	}
 
 	private SyntaxNode group() {
-		if (tokens.get(tokenIdx).type() == Token.Type.GROUPING) {
-			tokenIdx++;
+		if (getToken().type() == Token.Type.GROUPING) {
+			nextToken();
 			SyntaxNode e = expressionE();
 			if (e == null)
-				throw new SyntaxError("Expected expression inside of parentheses", tokens.get(tokenIdx).line(), tokens.get(tokenIdx).pos());
-			if (tokens.get(tokenIdx).type() != Token.Type.GROUPING)
-				throw new SyntaxError("Expected closing parentheses", tokens.get(tokenIdx).line(), tokens.get(tokenIdx).pos());
-			tokenIdx++;
+				throw new SyntaxError("Expected expression inside of parentheses", getToken().line(), getToken().pos());
+			if (getToken().type() != Token.Type.GROUPING)
+				throw new SyntaxError("Expected closing parentheses", getToken().line(), getToken().pos());
+			nextToken();
 			return e;
 		}
 		return term();
 	}
 
 	private SyntaxNode term() {
-		if (tokens.get(tokenIdx).type() == Token.Type.NUMBER)
-			return new NumberNode(Double.parseDouble(tokens.get(tokenIdx++).text()));
-		else if (tokens.get(tokenIdx).type() == Token.Type.STRING)
-			return new StringNode(tokens.get(tokenIdx++).text());
-		return null;
+		switch (getToken().type()) {
+			case NUMBER -> {
+				return new NumberNode(Double.parseDouble(nextToken().text()));
+			} case STRING -> {
+				return new StringNode(nextToken().text());
+			} case BOOLEAN -> {
+				return new BooleanNode(Boolean.parseBoolean(nextToken().text()));
+			}
+		}
+		throw new SyntaxError("Expected term but found nothing", tokens.get(tokenIdx - 1).line(), tokens.get(tokenIdx - 1).pos());
+	}
+
+	private Token nextToken() {
+		if (tokenIdx >= tokens.size())
+			return new Token("EOF", 0, 0, 0, Token.Type.END_OF_FILE);
+		else
+			return tokens.get(tokenIdx++);
+	}
+
+	private Token getToken() {
+		if (tokenIdx >= tokens.size())
+			return new Token("EOF", 0, 0, 0, Token.Type.END_OF_FILE);
+		else
+			return tokens.get(tokenIdx);
 	}
 
 	public String toString() {

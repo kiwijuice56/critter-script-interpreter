@@ -61,7 +61,7 @@ public class Tokenizer {
 					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ARRAY_SPLIT));
 				} case '=' -> {
 					pos++;
-					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.SET));
+					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ASSIGN));
 				} case '<', '>' -> {
 					pos++;
 					String comp = lookahead + "";
