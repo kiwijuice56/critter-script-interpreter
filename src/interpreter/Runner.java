@@ -12,7 +12,15 @@ public class Runner {
 		AbstractSyntaxTree a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 
-		t = Tokenizer.tokenize("not true or false");
+		t = Tokenizer.tokenize("true or false\n 1 * 2 + 1\n\"wow\"");
+		a = new AbstractSyntaxTree(t);
+		System.out.println(a);
+
+		t = Tokenizer.tokenize("a[0] + 2");
+		a = new AbstractSyntaxTree(t);
+		System.out.println(a);
+
+		t = Tokenizer.tokenize("a[0][1] + b[0][1][2] + asdn * 2");
 		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 	}

@@ -3,9 +3,7 @@ package interpreter.syntax_tree;
 import interpreter.SyntaxError;
 import interpreter.tokenizer.Token;
 
-import java.beans.Expression;
-import java.util.InputMismatchException;
-import java.util.List;
+import java.util.*;
 
 public class AbstractSyntaxTree {
 	private final List<Token> tokens;
@@ -14,7 +12,24 @@ public class AbstractSyntaxTree {
 
 	public AbstractSyntaxTree(List<Token> tokens) {
 		this.tokens = tokens;
-		root = expressionA();
+		root = block();
+	}
+
+	private SyntaxNode block() {
+		int startIndent = getToken().indent();
+		SyntaxNode block = new BlockNode();
+		while (getToken().indent() == startIndent)
+			block.getChildren().add(line());
+		return block;
+	}
+
+	private SyntaxNode line() {
+		SyntaxNode expr = expressionA();
+		if (getToken().type() != Token.Type.END_OF_LINE && getToken().type() != Token.Type.END_OF_FILE) {
+			throw new SyntaxError("Expected end of line", getToken().line(), getToken().pos());
+		}
+		nextToken();
+		return expr;
 	}
 
 	private SyntaxNode expressionA() {
@@ -114,21 +129,44 @@ public class AbstractSyntaxTree {
 				return new StringNode(nextToken().text());
 			} case BOOLEAN -> {
 				return new BooleanNode(Boolean.parseBoolean(nextToken().text()));
+			} case IDENTIFIER -> {
+				SyntaxNode v = new VariableNode(getToken().text());
+				nextToken();
+				if (getToken().type() != Token.Type.ARRAY_ACCESS)
+					return v;
+
+				Queue<OperationNode> ops = new LinkedList<>();
+				while (getToken().type() == Token.Type.ARRAY_ACCESS) {
+					nextToken();
+					SyntaxNode expr = expressionA();
+					ops.add(new OperationNode("[]", new ArrayList<>(List.of(expr))));
+					if (getToken().type() != Token.Type.ARRAY_ACCESS)
+						throw new SyntaxError("Expected closing brackets", getToken().line(), getToken().pos());
+					nextToken();
+				}
+				OperationNode last = ops.remove();
+				last.getChildren().add(v);
+				while (ops.size() >= 1) {
+					OperationNode next = ops.poll();
+					next.getChildren().add(last);
+					last = next;
+				}
+
+				return last;
 			}
 		}
 		throw new SyntaxError("Expected term but found nothing", tokens.get(tokenIdx - 1).line(), tokens.get(tokenIdx - 1).pos());
 	}
 
 	private Token nextToken() {
-		if (tokenIdx >= tokens.size())
-			return new Token("EOF", 0, 0, 0, Token.Type.END_OF_FILE);
-		else
-			return tokens.get(tokenIdx++);
+		Token t = getToken();
+		tokenIdx = Math.min(tokens.size(), tokenIdx + 1);
+		return t;
 	}
 
 	private Token getToken() {
 		if (tokenIdx >= tokens.size())
-			return new Token("EOF", 0, 0, 0, Token.Type.END_OF_FILE);
+			return new Token("EOF", 0, 0, -1, Token.Type.END_OF_FILE);
 		else
 			return tokens.get(tokenIdx);
 	}
