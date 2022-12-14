@@ -36,10 +36,10 @@ public class Tokenizer {
 					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.MULTIPLICATIVE));
 				} case '{', '}' -> {
 					pos++;
-					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ARRAY_DEFINITION));
+					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ARRAY_DECLARATION));
 				} case '[', ']' -> {
 					pos++;
-					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ARRAY_ACCESS));
+					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.INDEX));
 				} case '"' -> {
 					StringBuilder strBuilder = new StringBuilder();
 					do {
@@ -58,7 +58,7 @@ public class Tokenizer {
 					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.COMMA));
 				} case ':' -> {
 					pos++;
-					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ARRAY_SPLIT));
+					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.INDEX_RANGE));
 				} case '=' -> {
 					pos++;
 					tokens.add(new Token(lookahead + "", line, start, indent, Token.Type.ASSIGN));

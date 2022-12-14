@@ -16,11 +16,11 @@ public class Runner {
 		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 
-		t = Tokenizer.tokenize("a[0] + 2");
+		t = Tokenizer.tokenize("not ((x *  3)) + (1) * a[a[0]] + a[a][0]");
 		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 
-		t = Tokenizer.tokenize("a[0][1] + b[0][1][2] + asdn * 2");
+		t = Tokenizer.tokenize("\"yay\"[a + \"awesome\"] + {1, 2, 3} * {1, 2, 3, 4} + {}");
 		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 	}

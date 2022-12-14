@@ -5,6 +5,10 @@ import java.util.List;
 public class OperationNode extends SyntaxNode {
 	private final String operator;
 
+	public OperationNode(String operator) {
+		this.operator = operator;
+	}
+
 	public OperationNode(String operator, SyntaxNode child) {
 		super(child);
 		this.operator = operator;
