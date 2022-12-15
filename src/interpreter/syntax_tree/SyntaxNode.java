@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SyntaxNode {
-	private List<SyntaxNode> children;
+	private final List<SyntaxNode> children;
 
 	public SyntaxNode(SyntaxNode child) {
 		this.children = new ArrayList<>(List.of(child));

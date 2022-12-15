@@ -1,7 +1,7 @@
 package interpreter.syntax_tree;
 
 public class StringNode extends SyntaxNode {
-	private String val;
+	private final String val;
 
 	public StringNode(String val) {
 		this.val = val;

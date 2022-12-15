@@ -6,62 +6,101 @@ import interpreter.tokenizer.Token;
 import java.util.*;
 
 public class AbstractSyntaxTree {
+	// Roots of method and variable trees
+	private final List<MethodNode> methods;
+	private final List<SyntaxNode> variableDeclarations;
+
+	// Tokens to parse into a tree upon construction
 	private final List<Token> tokens;
-	private final SyntaxNode root;
 	private int tokenIdx = 0;
 
 	public AbstractSyntaxTree(List<Token> tokens) {
+		this.variableDeclarations = new ArrayList<>();
+		this.methods = new ArrayList<>();
+
 		this.tokens = tokens;
-		root = block();
+		script();
 	}
 
-	private SyntaxNode script() {
-		SyntaxNode expr = method();
-		if (expr == null)
-			expr = variableDeclaration();
-	}
+	private void script() {
+		while (getToken().type() != Token.Type.END_OF_FILE) {
+			// Try to find either a method or loose variable declaration
+			MethodNode methodNode = method();
+			if (methodNode != null)
+				methods.add(methodNode);
 
-	private SyntaxNode method() {
-		if (getToken().type() == Token.Type.KEY_WORD && getToken().text().equals("method")) {
-			nextToken();
-			if (getToken().type() != Token.Type.IDENTIFIER)
-				throw new SyntaxError("Expected method name", getToken().line(), getToken().pos());
-			String methodName = nextToken().text();
-			if (!(getToken().text().equals("(") && getToken().type() == Token.Type.GROUPING))
-				throw new SyntaxError("Expected '(' for parameters", getToken().line(), getToken().pos());
-			while (nextToken().type() == Token.Type.IDENTIFIER) {
-				if (nextToken())
-			}
+			SyntaxNode variableNode = variableDeclaration();
+			if (variableNode != null)
+				variableDeclarations.add(variableNode);
+
+			// If neither are found, and we aren't at the end of the line, the user tried to put unexpected code
+			if (getToken().type() == Token.Type.END_OF_LINE)
+				consumeToken();
+			else if (variableNode == null && methodNode == null)
+				throw new SyntaxError("Expected method or variable declaration", getToken().line(), getToken().pos());
 		}
 	}
 
-	private SyntaxNode variableDeclaration() {
+	private MethodNode method() {
+		if (getToken().type() == Token.Type.KEY_WORD && getToken().text().equals("method")) {
+			consumeToken();
 
+			expect(Token.Type.IDENTIFIER);
+			String methodName = consumeToken().text();
+
+			expect(Token.Type.GROUPING, "(");
+			consumeToken();
+
+			List<String> parameters = new ArrayList<>();
+			while (!(getToken().text().equals(")") && getToken().type() == Token.Type.GROUPING)) {
+				expect(Token.Type.IDENTIFIER);
+				parameters.add(consumeToken().text());
+				if (getToken().type() == Token.Type.COMMA)
+					consumeToken();
+			}
+			consumeToken();
+			consumeToken();
+			return new MethodNode(List.of(block()), methodName, parameters);
+		}
+
+		return null;
+	}
+
+	private SyntaxNode variableDeclaration() {
+		if (getToken().type() == Token.Type.KEY_WORD && (getToken().text().equals("var") || getToken().text().equals("const"))) {
+			boolean isConst = consumeToken().text().equals("const");
+			expect(Token.Type.IDENTIFIER);
+			String varName = consumeToken().text();
+			expect(Token.Type.ASSIGN);
+			consumeToken();
+			return new OperationNode("<-", List.of(line(), new VariableDeclarationNode(varName, isConst)));
+		}
+		return null;
 	}
 
 	private SyntaxNode block() {
+		// Keep adding lines with matching indent
 		int startIndent = getToken().indent();
 		SyntaxNode block = new BlockNode();
-		while (getToken().indent() == startIndent)
-			block.getChildren().add(line());
+		while (getToken().indent() == startIndent) {
+			SyntaxNode var = variableDeclaration();
+			block.getChildren().add(var == null ? line() : var);
+		}
 		return block;
 	}
 
 	private SyntaxNode line() {
 		SyntaxNode expr = expressionA();
-		if (getToken().type() != Token.Type.END_OF_LINE && getToken().type() != Token.Type.END_OF_FILE)
-			throw new SyntaxError("Expected end of line", getToken().line(), getToken().pos());
-		nextToken();
+		expect(Token.Type.END_OF_LINE);
+		consumeToken();
 		return expr;
 	}
 
 	private SyntaxNode expressionA() {
 		SyntaxNode expr = expressionB();
 		if (getToken().type() == Token.Type.ASSIGN) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionA();
-			return new OperationNode(op, List.of(expr, next));
+			consumeToken();
+			return new OperationNode("=", List.of(expr,  expressionA()));
 		}
 		return expr;
 	}
@@ -69,10 +108,8 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionB() {
 		SyntaxNode expr = expressionC();
 		while (getToken().type() == Token.Type.LOGICAL && getToken().text().equals("or")) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionC();
-			expr = new OperationNode(op, List.of(expr, next));
+			consumeToken();
+			expr = new OperationNode("or", List.of(expr, expressionC()));
 		}
 		return expr;
 	}
@@ -80,10 +117,8 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionC() {
 		SyntaxNode expr = expressionD();
 		while (getToken().type() == Token.Type.LOGICAL && getToken().text().equals("and")) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionD();
-			expr = new OperationNode(op, List.of(expr, next));
+			consumeToken();
+			expr = new OperationNode("and", List.of(expr, expressionD()));
 		}
 		return expr;
 	}
@@ -91,10 +126,9 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionD() {
 		SyntaxNode expr = expressionE();
 		while (getToken().type() == Token.Type.RELATIONAL) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionE();
-			expr = new OperationNode(op, List.of(expr, next));
+			String op = getToken().text(); // Could be <=, >=, <, >, is, is not
+			consumeToken();
+			expr = new OperationNode(op, List.of(expr, expressionE()));
 		}
 		return expr;
 	}
@@ -102,10 +136,9 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionE() {
 		SyntaxNode expr = expressionF();
 		while (getToken().type() == Token.Type.ADDITIVE) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionF();
-			expr = new OperationNode(op, List.of(expr, next));
+			String op = getToken().text(); // Could be +, -
+			consumeToken();
+			expr = new OperationNode(op, List.of(expr, expressionF()));
 		}
 		return expr;
 	}
@@ -113,30 +146,28 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionF() {
 		SyntaxNode expr = expressionG();
 		while (getToken().type() == Token.Type.MULTIPLICATIVE) {
-			String op = getToken().text();
-			nextToken();
-			SyntaxNode next = expressionG();
-			expr = new OperationNode(op, List.of(expr, next));
+			String op = getToken().text(); // Could be *, %, /
+			consumeToken();
+			expr = new OperationNode(op, List.of(expr, expressionG()));
 		}
 		return expr;
 	}
 
 	private SyntaxNode expressionG() {
 		if (getToken().type() == Token.Type.NEGATE) {
-			nextToken();
-			SyntaxNode next = expressionG();
-			return new OperationNode("not", next);
+			consumeToken();
+			return new OperationNode("not", expressionG());
 		}
 		return group();
 	}
 
 	private SyntaxNode group() {
 		if (getToken().type() == Token.Type.GROUPING) {
-			nextToken();
+			expect(Token.Type.GROUPING, "(");
+			consumeToken();
 			SyntaxNode expr = expressionA();
-			if (getToken().type() != Token.Type.GROUPING)
-				throw new SyntaxError("Expected closing ')'", getToken().line(), getToken().pos());
-			nextToken();
+			expect(Token.Type.GROUPING, ")");
+			consumeToken();
 			return expr;
 		}
 		return term();
@@ -145,49 +176,46 @@ public class AbstractSyntaxTree {
 	private SyntaxNode term() {
 		switch (getToken().type()) {
 			case NUMBER -> {
-				return new NumberNode(Double.parseDouble(nextToken().text()));
+				return new NumberNode(Double.parseDouble(consumeToken().text()));
 			} case BOOLEAN -> {
-				return new BooleanNode(Boolean.parseBoolean(nextToken().text()));
+				return new BooleanNode(Boolean.parseBoolean(consumeToken().text()));
 			} case ARRAY_DECLARATION -> {
-				if (getToken().text().equals("}"))
-					throw new SyntaxError("Expected '{' instead of '}'", getToken().line(), getToken().pos());
+				expect(Token.Type.ARRAY_DECLARATION, "{");
 				SyntaxNode expr = new OperationNode("{}");
 
-				// Check for empty array '{}'
-				nextToken();
+				// Check for an empty array {}
+				consumeToken();
 				if (getToken().text().equals("}") && getToken().type() == Token.Type.ARRAY_DECLARATION) {
-					nextToken();
+					consumeToken();
 					return expr;
 				}
 
 				while (true) {
 					expr.getChildren().add(expressionA());
 
+					// Either expect the end of the array and return or a comma for the next element
 					if (getToken().text().equals("}") && getToken().type() == Token.Type.ARRAY_DECLARATION) {
-						nextToken();
+						consumeToken();
 						return expr;
 					}
+					expect(Token.Type.COMMA);
 
-					if (getToken().type() != Token.Type.COMMA)
-						throw new SyntaxError("Expected comma after item declaration", getToken().line(), getToken().pos());
-
-					nextToken();
+					consumeToken();
 				}
 			} case IDENTIFIER, STRING -> {
 				SyntaxNode var = getToken().type() == Token.Type.IDENTIFIER ?
 						new VariableNode(getToken().text()) : new StringNode(getToken().text());
-				nextToken();
+				consumeToken();
 				if (!(getToken().text().equals("[") && getToken().type() == Token.Type.INDEX))
 					return var;
 
+				// Create nested tree structure for multi-dimensional array access (ex: a[0][0])
 				Queue<OperationNode> nestedIndex = new LinkedList<>();
 				while (getToken().text().equals("[") && getToken().type() == Token.Type.INDEX) {
-					nextToken();
-					SyntaxNode expr = expressionA();
-					nestedIndex.add(new OperationNode("[]", new ArrayList<>(List.of(expr))));
-					if (!(getToken().text().equals("]") && getToken().type() == Token.Type.INDEX))
-						throw new SyntaxError("Expected closing ']' bracket", getToken().line(), getToken().pos());
-					nextToken();
+					consumeToken();
+					nestedIndex.add(new OperationNode("[]", expressionA()));
+					expect(Token.Type.INDEX, "]");
+					consumeToken();
 				}
 				OperationNode last = nestedIndex.remove();
 				last.getChildren().add(var);
@@ -203,20 +231,41 @@ public class AbstractSyntaxTree {
 		throw new SyntaxError("Expected a term but found nothing", tokens.get(tokenIdx - 1).line(), tokens.get(tokenIdx - 1).pos());
 	}
 
-	private Token nextToken() {
-		Token t = getToken();
+	private Token consumeToken() {
+		Token token = getToken();
 		tokenIdx = Math.min(tokens.size(), tokenIdx + 1);
-		return t;
+		return token;
 	}
 
 	private Token getToken() {
 		if (tokenIdx >= tokens.size())
-			return new Token("EOF", 0, 0, -1, Token.Type.END_OF_FILE);
+			return new Token("EOF",
+					tokens.get(tokenIdx - 1).line(),
+					tokens.get(tokenIdx - 1).pos(),
+					tokens.get(tokenIdx - 1).indent(), Token.Type.END_OF_FILE);
 		else
 			return tokens.get(tokenIdx);
 	}
 
+	private void expect(Token.Type expectedType) {
+		if (getToken().type() != expectedType)
+			throw new SyntaxError("Expected %s".formatted(expectedType.name()), getToken().line(), getToken().pos());
+	}
+
+	private void expect(Token.Type expectedType, String expectedText) {
+		expect(expectedType);
+		if (!getToken().text().equals(expectedText))
+			throw new SyntaxError("Expected %s".formatted(expectedType.name()), getToken().line(), getToken().pos());
+	}
+
 	public String toString() {
-		return root.treeString(0);
+		StringBuilder out = new StringBuilder();
+		for (SyntaxNode v : variableDeclarations)
+			out.append(v.treeString(0));
+
+		for (MethodNode m : methods)
+			out.append(m.treeString(0));
+
+		return out.toString();
 	}
 }

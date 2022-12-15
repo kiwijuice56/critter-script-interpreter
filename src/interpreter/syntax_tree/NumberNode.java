@@ -1,7 +1,7 @@
 package interpreter.syntax_tree;
 
 public class NumberNode extends SyntaxNode {
-	private double val;
+	private final double val;
 
 	public NumberNode(double val) {
 		this.val = val;

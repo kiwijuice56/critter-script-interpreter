@@ -10,6 +10,7 @@ public class Tokenizer {
 	};
 
 	public static List<Token> tokenize(String in) {
+		in += "\n";
 		Set<String> keyWordSet = new HashSet<>(Arrays.asList(KEY_WORDS));
 
 		List<Token> tokens = new ArrayList<>();

@@ -8,20 +8,19 @@ import java.util.List;
 
 public class Runner {
 	public static void main(String[] args) {
-		List<Token> t = Tokenizer.tokenize("2 * (2 + 3) + (5 - 2) + \"wow123\" + \"2\" + \"\"");
+		List<Token> t = Tokenizer.tokenize("""
+    			var p = {1, 2, 3}
+    			method fun(i, j)
+    				var x = 2 and 3 - 1
+    				var y = x * 2
+    				x = y - p[0] / 2
+    			
+    			method awesome()
+    				z = "yay"[2]
+    				c = 2
+    				
+    			""");
 		AbstractSyntaxTree a = new AbstractSyntaxTree(t);
-		System.out.println(a);
-
-		t = Tokenizer.tokenize("true or false\n 1 * 2 + 1\n\"wow\"");
-		a = new AbstractSyntaxTree(t);
-		System.out.println(a);
-
-		t = Tokenizer.tokenize("not ((x *  3)) + (1) * a[a[0]] + a[a][0]");
-		a = new AbstractSyntaxTree(t);
-		System.out.println(a);
-
-		t = Tokenizer.tokenize("\"yay\"[a + \"awesome\"] + {1, 2, 3} * {1, 2, 3, 4} + {}");
-		a = new AbstractSyntaxTree(t);
 		System.out.println(a);
 	}
 }
