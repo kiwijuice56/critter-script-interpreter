@@ -10,4 +10,8 @@ public class VariableNode extends SyntaxNode {
 	public String toString() {
 		return "Variable: " + name;
 	}
+
+	public String getName() {
+		return name;
+	}
 }

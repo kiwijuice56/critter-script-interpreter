@@ -4,6 +4,7 @@ import interpreter.SyntaxError;
 
 import java.util.*;
 
+// Creates a list of tokens from raw text, allowing for easier parsing when creating the AST
 public class Tokenizer {
 	public static final String[] KEY_WORDS = new String[] {
 			"if", "while", "else", "method", "return", "const", "var", "global", "pass"

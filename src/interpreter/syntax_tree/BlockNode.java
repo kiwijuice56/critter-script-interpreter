@@ -7,14 +7,6 @@ public class BlockNode extends SyntaxNode {
 		super();
 	}
 
-	public BlockNode(String operator, SyntaxNode child) {
-		super(child);
-	}
-
-	public BlockNode(List<SyntaxNode> children) {
-		super(children);
-	}
-
 	public String toString() {
 		return "Block: ";
 	}

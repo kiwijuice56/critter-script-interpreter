@@ -1,9 +1,10 @@
 package interpreter.tokenizer;
 
+// The building blocks of CritterScript code
 public record Token(String text, int line, int pos, int indent, Token.Type type) {
 	public enum Type {
 		ADDITIVE,
-		ARRAY_DECLARATION,
+		ARRAY_DECLARATION, // Tokens for '{' are necessary because expressions can be used to initialize arrays
 		ASSIGN,
 		BOOLEAN,
 		COMMA,
@@ -19,7 +20,7 @@ public record Token(String text, int line, int pos, int indent, Token.Type type)
 		NEGATE,
 		NUMBER,
 		RELATIONAL,
-		STRING,
+		STRING, // Strings can be considered as a while because they are raw text
 	}
 
 	public String toString() {
