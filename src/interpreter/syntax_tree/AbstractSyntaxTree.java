@@ -7,7 +7,7 @@ import java.util.*;
 
 public class AbstractSyntaxTree {
 	// Roots of method and variable trees
-	private final List<MethodNode> methods;
+	private final List<MethodDeclarationNode> methods;
 	private final List<SyntaxNode> variableDeclarations;
 
 	// Tokens to parse into a tree upon construction
@@ -25,7 +25,7 @@ public class AbstractSyntaxTree {
 	private void script() {
 		while (getToken().type() != Token.Type.END_OF_FILE) {
 			// Try to find either a method or loose variable declaration
-			MethodNode methodNode = method();
+			MethodDeclarationNode methodNode = method();
 			if (methodNode != null)
 				methods.add(methodNode);
 
@@ -41,7 +41,7 @@ public class AbstractSyntaxTree {
 		}
 	}
 
-	private MethodNode method() {
+	private MethodDeclarationNode method() {
 		if (getToken().type() == Token.Type.KEY_WORD && getToken().text().equals("method")) {
 			consumeToken();
 
@@ -60,7 +60,7 @@ public class AbstractSyntaxTree {
 			}
 			consumeToken();
 			consumeToken();
-			return new MethodNode(List.of(block()), methodName, parameters);
+			return new MethodDeclarationNode(List.of(block()), methodName, parameters);
 		}
 
 		return null;
@@ -173,6 +173,30 @@ public class AbstractSyntaxTree {
 		return term();
 	}
 
+	private SyntaxNode index(SyntaxNode array) {
+		if (getToken().type() == Token.Type.INDEX) {
+			expect(Token.Type.INDEX, "[");
+			// Create nested tree structure for multi-dimensional array access (ex: a[0][0])
+			Queue<OperationNode> nestedIndex = new LinkedList<>();
+			while (getToken().text().equals("[") && getToken().type() == Token.Type.INDEX) {
+				consumeToken();
+				nestedIndex.add(new OperationNode("[]", expressionA()));
+				expect(Token.Type.INDEX, "]");
+				consumeToken();
+			}
+			OperationNode last = nestedIndex.remove();
+			last.getChildren().add(array);
+			while (nestedIndex.size() >= 1) {
+				OperationNode next = nestedIndex.poll();
+				next.getChildren().add(last);
+				last = next;
+			}
+
+			return last;
+		}
+		return null;
+	}
+
 	private SyntaxNode term() {
 		switch (getToken().type()) {
 			case NUMBER -> {
@@ -203,29 +227,30 @@ public class AbstractSyntaxTree {
 					consumeToken();
 				}
 			} case IDENTIFIER, STRING -> {
-				SyntaxNode var = getToken().type() == Token.Type.IDENTIFIER ?
+				String name = getToken().text();
+				SyntaxNode variableNode = getToken().type() == Token.Type.IDENTIFIER ?
 						new VariableNode(getToken().text()) : new StringNode(getToken().text());
 				consumeToken();
-				if (!(getToken().text().equals("[") && getToken().type() == Token.Type.INDEX))
-					return var;
+				SyntaxNode indexedVariableNode = index(variableNode);
+				if (indexedVariableNode != null)
+					return indexedVariableNode;
 
-				// Create nested tree structure for multi-dimensional array access (ex: a[0][0])
-				Queue<OperationNode> nestedIndex = new LinkedList<>();
-				while (getToken().text().equals("[") && getToken().type() == Token.Type.INDEX) {
-					consumeToken();
-					nestedIndex.add(new OperationNode("[]", expressionA()));
-					expect(Token.Type.INDEX, "]");
-					consumeToken();
-				}
-				OperationNode last = nestedIndex.remove();
-				last.getChildren().add(var);
-				while (nestedIndex.size() >= 1) {
-					OperationNode next = nestedIndex.poll();
-					next.getChildren().add(last);
-					last = next;
-				}
+				if (!(getToken().type() == Token.Type.GROUPING && getToken().text().equals("(")))
+					return variableNode;
 
-				return last;
+				consumeToken();
+
+				if (!(variableNode instanceof VariableNode))
+					throw new SyntaxError("Expected method but found string", getToken().line(), getToken().pos());
+
+				List<SyntaxNode> arguments = new ArrayList<>();
+				while (!(getToken().text().equals(")") && getToken().type() == Token.Type.GROUPING)) {
+					arguments.add(expressionA());
+					if (getToken().type() == Token.Type.COMMA)
+						consumeToken();
+				}
+				consumeToken();
+				return new MethodCallNode(arguments, name);
 			}
 		}
 		throw new SyntaxError("Expected a term but found nothing", tokens.get(tokenIdx - 1).line(), tokens.get(tokenIdx - 1).pos());
@@ -263,7 +288,7 @@ public class AbstractSyntaxTree {
 		for (SyntaxNode v : variableDeclarations)
 			out.append(v.treeString(0));
 
-		for (MethodNode m : methods)
+		for (MethodDeclarationNode m : methods)
 			out.append(m.treeString(0));
 
 		return out.toString();

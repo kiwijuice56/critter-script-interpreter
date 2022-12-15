@@ -11,9 +11,12 @@ public class Runner {
 		List<Token> t = Tokenizer.tokenize("""
     			var p = {1, 2, 3}
     			method fun(i, j)
-    				var x = 2 and 3 - 1
-    				var y = x * 2
-    				x = y - p[0] / 2
+    				var x = 2 and 3 - "yay"
+    				var y = x * what(1, x(2) - yes(1)) - 2
+    				x = y - p[0] / awesome(1, 2, 3)
+    				print()
+    				print(x + 1)
+    				print(z - 1, 3)
     			
     			method awesome()
     				z = "yay"[2]
