@@ -1,4 +1,6 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.term_node;
+
+import critterscript.syntax_tree.SyntaxNode;
 
 import java.util.List;
 
@@ -11,6 +13,6 @@ public class MethodCallNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "Method Call: " + name;
+		return "method call: " + name;
 	}
 }

@@ -1,4 +1,6 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.term_node;
+
+import critterscript.syntax_tree.SyntaxNode;
 
 public class StringNode extends SyntaxNode {
 	private final String val;
@@ -8,6 +10,6 @@ public class StringNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "String: " + val;
+		return "str: " + val;
 	}
 }

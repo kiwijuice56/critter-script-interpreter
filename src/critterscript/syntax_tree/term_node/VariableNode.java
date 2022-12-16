@@ -1,4 +1,6 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.term_node;
+
+import critterscript.syntax_tree.SyntaxNode;
 
 public class VariableNode extends SyntaxNode {
 	private final String name;
@@ -8,7 +10,7 @@ public class VariableNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "Variable: " + name;
+		return "var: " + name;
 	}
 
 	public String getName() {

@@ -1,6 +1,8 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.operation_node.declaration;
 
-public class VariableDeclarationNode extends SyntaxNode {
+import critterscript.syntax_tree.operation_node.OperationNode;
+
+public class VariableDeclarationNode extends OperationNode {
 	private final String name;
 	private final boolean isConst;
 	private final boolean isGlobal;
@@ -12,6 +14,6 @@ public class VariableDeclarationNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "New " + (isGlobal ? "Global" : "Instance") +(isConst ? " Constant: " : " Variable: ") + name;
+		return "new " + (isGlobal ? "global" : "instance") +(isConst ? " const: " : " var: ") + name;
 	}
 }

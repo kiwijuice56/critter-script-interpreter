@@ -1,4 +1,6 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.term_node;
+
+import critterscript.syntax_tree.SyntaxNode;
 
 public class BooleanNode extends SyntaxNode {
 	private final boolean val;
@@ -8,6 +10,6 @@ public class BooleanNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "Boolean: " + val;
+		return "bool: " + val;
 	}
 }

@@ -1,12 +1,21 @@
 package critterscript.syntax_tree;
 
 import critterscript.SyntaxError;
-import critterscript.tokenizer.Token;
-import critterscript.tokenizer.TokenParser;
+import critterscript.syntax_tree.control_node.*;
+import critterscript.syntax_tree.operation_node.*;
+import critterscript.syntax_tree.operation_node.additive.*;
+import critterscript.syntax_tree.operation_node.array.*;
+import critterscript.syntax_tree.operation_node.assignment.*;
+import critterscript.syntax_tree.operation_node.declaration.*;
+import critterscript.syntax_tree.operation_node.logical.*;
+import critterscript.syntax_tree.operation_node.multiplicative.*;
+import critterscript.syntax_tree.operation_node.relational.*;
+import critterscript.syntax_tree.term_node.*;
+import critterscript.tokenizer.*;
 
 import java.util.*;
 
-// TODO: Array splicing,
+// TODO: Array splicing, if statements, while statements
 public class AbstractSyntaxTree {
 	// Roots of method and variable trees
 	// These are kept separate; we only need to initialize the variables once, while the methods are accessed often
@@ -80,7 +89,7 @@ public class AbstractSyntaxTree {
 			String varName = tk.consume().text();
 			tk.expect(Token.Type.ASSIGN);
 			tk.consume();
-			return new OperationNode("=", List.of(line(), new VariableDeclarationNode(varName, isConst, isGlobal)));
+			return new AssignmentNode(List.of(line(), new VariableDeclarationNode(varName, isConst, isGlobal)));
 		}
 		return null;
 	}
@@ -120,7 +129,7 @@ public class AbstractSyntaxTree {
 
 	private SyntaxNode returnStatement() {
 		if (tk.peek().text().equals("return") && tk.peek().type() == Token.Type.KEY_WORD) {
-			OperationNode expr = new OperationNode("return");
+			OperationNode expr = new ReturnNode();
 			tk.consume();
 			expr.getChildren().add(expressionA());
 			tk.consume();
@@ -133,7 +142,7 @@ public class AbstractSyntaxTree {
 		if (tk.peek().text().equals("pass") && tk.peek().type() == Token.Type.KEY_WORD) {
 			tk.consume();
 			tk.consume();
-			return new OperationNode("pass");
+			return new PassNode();
 		}
 		return null;
 	}
@@ -146,7 +155,7 @@ public class AbstractSyntaxTree {
 		SyntaxNode expr = expressionB();
 		if (tk.peek().type() == Token.Type.ASSIGN) {
 			tk.consume();
-			return new OperationNode("=", List.of(expr, expressionA()));
+			return new AssignmentNode(List.of(expr, expressionA()));
 		}
 		return expr;
 	}
@@ -156,7 +165,7 @@ public class AbstractSyntaxTree {
 		SyntaxNode expr = expressionC();
 		while (tk.peek().type() == Token.Type.LOGICAL && tk.peek().text().equals("or")) {
 			tk.consume();
-			expr = new OperationNode("or", List.of(expr, expressionC()));
+			expr = new AndNode(List.of(expr, expressionC()));
 		}
 		return expr;
 	}
@@ -166,7 +175,7 @@ public class AbstractSyntaxTree {
 		SyntaxNode expr = expressionD();
 		while (tk.peek().type() == Token.Type.LOGICAL && tk.peek().text().equals("and")) {
 			tk.consume();
-			expr = new OperationNode("and", List.of(expr, expressionD()));
+			expr = new AndNode(List.of(expr, expressionD()));
 		}
 		return expr;
 	}
@@ -175,8 +184,15 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionD() {
 		SyntaxNode expr = expressionE();
 		while (tk.peek().type() == Token.Type.RELATIONAL) {
-			String op = tk.consume().text(); // Could be <=, >=, <, >, is, is not
-			expr = new OperationNode(op, List.of(expr, expressionE()));
+			expr = switch (tk.consume().text()) {
+				case "<" -> new LessThanNode();
+				case "<=" -> new LessThanOrEqualToNode();
+				case ">" -> new GreaterThanNode();
+				case ">=" -> new GreaterThanOrEqualToNode();
+				case "is" -> new IsNode();
+				default -> new IsNotNode();
+			};
+			expr.getChildren().add(expressionE());
 		}
 		return expr;
 	}
@@ -185,8 +201,10 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionE() {
 		SyntaxNode expr = expressionF();
 		while (tk.peek().type() == Token.Type.ADDITIVE) {
-			String op = tk.consume().text(); // Could be +, -
-			expr = new OperationNode(op, List.of(expr, expressionF()));
+			SyntaxNode child = expr;
+			expr = tk.consume().text().equals("+") ? new AdditionNode() : new SubtractionNode();
+			expr.getChildren().add(child);
+			expr.getChildren().add(expressionF());
 		}
 		return expr;
 	}
@@ -195,8 +213,14 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionF() {
 		SyntaxNode expr = expressionG();
 		while (tk.peek().type() == Token.Type.MULTIPLICATIVE) {
-			String op = tk.consume().text(); // Could be *, %, /
-			expr = new OperationNode(op, List.of(expr, expressionG()));
+			SyntaxNode child = expr;
+			expr = switch (tk.consume().text()) {
+				case "*" -> new MultiplicationNode();
+				case "/" -> new DivisionNode();
+				default -> new ModulusNode();
+			};
+			expr.getChildren().add(child);
+			expr.getChildren().add(expressionG());
 		}
 		return expr;
 	}
@@ -205,7 +229,7 @@ public class AbstractSyntaxTree {
 	private SyntaxNode expressionG() {
 		if (tk.peek().type() == Token.Type.NEGATE) {
 			tk.consume();
-			return new OperationNode("not", expressionG());
+			return new NegateNode(expressionG());
 		}
 		return group();
 	}
@@ -233,7 +257,7 @@ public class AbstractSyntaxTree {
 				return new BooleanNode(Boolean.parseBoolean(tk.consume().text()));
 			} case ARRAY_DECLARATION -> {
 				tk.expect(Token.Type.ARRAY_DECLARATION, "{");
-				SyntaxNode expr = new OperationNode("{}");
+				SyntaxNode expr = new ArrayCreationNode();
 
 				// Check for an empty array {}
 				tk.consume();
@@ -292,7 +316,7 @@ public class AbstractSyntaxTree {
 			Queue<OperationNode> nestedIndex = new LinkedList<>();
 			while (tk.peek().text().equals("[") && tk.peek().type() == Token.Type.INDEX) {
 				tk.consume();
-				nestedIndex.add(new OperationNode("[]", expressionA()));
+				nestedIndex.add(new ArrayIndexNode(expressionA()));
 				tk.expect(Token.Type.INDEX, "]");
 				tk.consume();
 			}

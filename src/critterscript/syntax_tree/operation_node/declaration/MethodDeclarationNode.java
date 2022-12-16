@@ -1,4 +1,6 @@
-package critterscript.syntax_tree;
+package critterscript.syntax_tree.operation_node.declaration;
+
+import critterscript.syntax_tree.SyntaxNode;
 
 import java.util.List;
 
@@ -13,6 +15,6 @@ public class MethodDeclarationNode extends SyntaxNode {
 	}
 
 	public String toString() {
-		return "Method Declaration: " + name + " " + parameters;
+		return "new method: " + name + " " + parameters;
 	}
 }

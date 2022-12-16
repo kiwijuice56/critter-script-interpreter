@@ -17,11 +17,12 @@ public class Interpreter {
         this.globalState = new CritterState();
     }
 
-    public void createCritter() {
-
+    public void initializeCritter(Critter c) {
+        instanceState.put(c, new CritterState());
+        // TODO: Add instance variables from the AST to the state
     }
 
-    public void destroyCritter() {
-        
+    public void removeCritter(Critter c) {
+        instanceState.remove(c);
     }
 }

@@ -17,7 +17,7 @@ public class SyntaxNode {
 		this.children = new ArrayList<>();
 	}
 
-	public void process() {
+	public void evaluate() {
 
 	}
 
@@ -26,14 +26,13 @@ public class SyntaxNode {
 	}
 
 	public String treeString(int indent) {
-		StringBuilder out = new StringBuilder("\t".repeat(indent) + this + "\n");
-		for (SyntaxNode child : children) {
+		StringBuilder out = new StringBuilder("  ".repeat(indent) + this + "\n");
+		for (SyntaxNode child : children)
 			out.append(child.treeString(indent + 1));
-		}
 		return out.toString();
 	}
 
 	public String toString() {
-		return "SyntaxNode";
+		return "syntax";
 	}
 }
