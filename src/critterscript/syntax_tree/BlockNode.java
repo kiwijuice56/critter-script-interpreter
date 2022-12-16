@@ -1,6 +1,4 @@
-package interpreter.syntax_tree;
-
-import java.util.List;
+package critterscript.syntax_tree;
 
 public class BlockNode extends SyntaxNode {
 	public BlockNode() {

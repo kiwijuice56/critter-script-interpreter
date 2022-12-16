@@ -1,8 +1,8 @@
-package interpreter.syntax_tree;
+package critterscript.syntax_tree;
 
-import interpreter.SyntaxError;
-import interpreter.tokenizer.Token;
-import interpreter.tokenizer.TokenParser;
+import critterscript.SyntaxError;
+import critterscript.tokenizer.Token;
+import critterscript.tokenizer.TokenParser;
 
 import java.util.*;
 
@@ -80,7 +80,7 @@ public class AbstractSyntaxTree {
 			String varName = tk.consume().text();
 			tk.expect(Token.Type.ASSIGN);
 			tk.consume();
-			return new OperationNode("<-", List.of(line(), new VariableDeclarationNode(varName, isConst, isGlobal)));
+			return new OperationNode("=", List.of(line(), new VariableDeclarationNode(varName, isConst, isGlobal)));
 		}
 		return null;
 	}

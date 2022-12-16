@@ -1,4 +1,4 @@
-package interpreter.syntax_tree;
+package critterscript.syntax_tree;
 
 public class NumberNode extends SyntaxNode {
 	private final double val;

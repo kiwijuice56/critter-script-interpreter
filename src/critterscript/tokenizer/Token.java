@@ -1,4 +1,4 @@
-package interpreter.tokenizer;
+package critterscript.tokenizer;
 
 // The building blocks of CritterScript code
 public record Token(String text, int line, int pos, int indent, Token.Type type) {

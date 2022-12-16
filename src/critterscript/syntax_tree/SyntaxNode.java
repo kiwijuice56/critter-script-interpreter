@@ -1,4 +1,4 @@
-package interpreter.syntax_tree;
+package critterscript.syntax_tree;
 
 import java.util.ArrayList;
 import java.util.List;

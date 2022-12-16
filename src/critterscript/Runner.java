@@ -1,9 +1,9 @@
-package interpreter;
+package critterscript;
 
-import interpreter.syntax_tree.AbstractSyntaxTree;
-import interpreter.tokenizer.Token;
-import interpreter.tokenizer.TokenParser;
-import interpreter.tokenizer.Tokenizer;
+import critterscript.syntax_tree.AbstractSyntaxTree;
+import critterscript.tokenizer.Token;
+import critterscript.tokenizer.TokenParser;
+import critterscript.tokenizer.Tokenizer;
 
 import java.util.List;
 

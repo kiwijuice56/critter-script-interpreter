@@ -1,6 +1,6 @@
-package interpreter.tokenizer;
+package critterscript.tokenizer;
 
-import interpreter.SyntaxError;
+import critterscript.SyntaxError;
 
 import java.util.*;
 
